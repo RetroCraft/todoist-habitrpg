@@ -14,34 +14,39 @@ program
 main();
 
 function main() {
-// todo: think about removing these checks
+  // todo: think about removing these checks
   if (!program.uid) {
-    console.error("No HabitRPG User Id found");
+    console.error('No HabitRPG User Id found');
     return;
   }
   if (!program.token) {
-    console.error("No HabitRPG API Token found");
+    console.error('No HabitRPG API Token found');
     return;
   }
   if (!program.todoist) {
-    console.error("No Todoist API Token found");
+    console.error('No Todoist API Token found');
     return;
   }
   if (program.file) {
     program.historyPath = program.file + '/.todoist-habitrpg.json';
   } else {
-    if(process.platform == "win32") {
-      program.historyPath = process.env.HOMEPATH + '/.todoist-habitrpg.json'
+    if (process.platform == 'win32') {
+      program.historyPath = process.env.HOMEPATH + '/.todoist-habitrpg.json';
     } else {
-      program.historyPath = process.env.HOME + '/.todoist-habitrpg.json'
+      program.historyPath = process.env.HOME + '/.todoist-habitrpg.json';
     }
   }
-  
-  var sync = new habitSync({uid: program.uid, token: program.token, todoist: program.todoist, historyPath: program.file});
+
+  var sync = new habitSync({
+    uid: program.uid,
+    token: program.token,
+    todoist: program.todoist,
+    historyPath: program.file,
+  });
   sync.run(function(err) {
-    if(err) {
-      console.log('Sync failed with error: ' + err)
+    if (err) {
+      console.log('Sync failed with error: ' + err);
     }
-    console.log('Sync completed successfully.')
+    console.log('Sync completed successfully.');
   });
 }
