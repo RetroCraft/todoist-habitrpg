@@ -51,12 +51,13 @@ class HabitSync {
       history.tasks = {};
     }
     const oldHistory = _.cloneDeep(history);
-    console.log(`read ${oldHistory.tasks.length}`);
+    console.log(`read ${Object.keys(oldHistory.tasks).length} tasks from history`);
     this.habitAttributes = await this.getHabitAttributeIds();
     const res = await this.getTodoistSync();
     history.sync_token = res.data.sync_token;
     this.updateHistoryForTodoistItems(res.data.items);
     const changedTasks = this.findTasksThatNeedUpdating(history, oldHistory);
+    console.log(`creating/updating ${changedTasks.length} tasks`);
     const newHistory = await this.syncItemsToHabitRpg(changedTasks);
     fs.writeFileSync(this.historyPath, JSON.stringify(newHistory));
   }
@@ -126,7 +127,6 @@ class HabitSync {
     await Promise.all(
       items.map(async item => {
         const res = await this.syncItemToHabitRpg(item);
-        console.log(res.body);
         history.tasks[item.todoist.id] = {
           todoist: item.todoist,
           habitrpg: res.body,
@@ -176,7 +176,7 @@ class HabitSync {
           (task.completed === true && item.habitrpg.completed === undefined)
         ) {
           const direction = task.completed === true;
-          console.log(`updating completion (${direction}): ${task.text}`);
+          console.log(`updating completion of ${task.type} (${direction}): ${task.text}`);
           await new Promise((resolve, reject) => {
             habit.updateTaskScore(item.habitrpg.id, direction, (err, res) =>
               err ? reject(err) : resolve(res),
@@ -200,7 +200,7 @@ class HabitSync {
           task.completed = true;
         }
       }
-      console.log(`updating task: ${task.text}`);
+      console.log(`updating ${task.type}: ${task.text}`);
       res = await new Promise((resolve, reject) =>
         habit.updateTask(item.habitrpg.id, task, (err, res) => (err ? reject(err) : resolve(res))),
       );
@@ -208,7 +208,7 @@ class HabitSync {
       if (task.type == 'todo' && task.completed) {
         task.dateCompleted = new Date();
       }
-      console.log(`creating task: ${task.text}`);
+      console.log(`creating ${task.type}: ${task.text}`);
       res = await new Promise((resolve, reject) =>
         habit.createTask(task, (err, res) => (err ? reject(err) : resolve(res))),
       );
