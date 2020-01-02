@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 var program = require('commander');
-var HabitSync = require('./habitSync');
+var HabitSync = require('./HabitSync');
 
 program
   .version('0.0.1')

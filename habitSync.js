@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-var habitapi = require('habitrpg-api');
+var HabitAPI = require('./HabitAPI');
 var request = require('superagent');
 var async = require('async');
 var fs = require('fs');
@@ -59,6 +59,7 @@ class HabitSync {
           this.getTodoistSync(cb);
         },
         (res, cb) => {
+          history.sync_token = res.body.sync_token;
           this.updateHistoryForTodoistItems(res.body.items);
           var changedTasks = this.findTasksThatNeedUpdating(history, oldHistory);
           this.syncItemsToHabitRpg(changedTasks, cb);
@@ -98,7 +99,7 @@ class HabitSync {
   }
 
   updateHistoryForTodoistItems(items) {
-    var habit = new habitapi(this.uid, this.token, null, 'v2');
+    var habit = new HabitAPI(this.uid, this.token, null, 'v2');
     _.forEach(items, function(item) {
       if (history.tasks[item.id]) {
         if (item.is_deleted) {
@@ -127,16 +128,18 @@ class HabitSync {
   }
 
   getTodoistSync(cb) {
+    var sync_token = history.sync_token || '*';
     request
-      .get('https://api.todoist.com/sync/v8/sync')
-      .send(`token=${this.todoist}`)
-      .send('sync_token=*')
-      .send('resource_types=["all"]')
-      .end(cb);
+      .get(
+        `https://api.todoist.com/sync/v8/sync?token=${this.todoist}&sync_token=${sync_token}&resource_types=["all"]`,
+      )
+      .end(function(err, res) {
+        cb(err, res);
+      });
   }
 
   syncItemsToHabitRpg(items, cb) {
-    var habit = new habitapi(this.uid, this.token);
+    var habit = new HabitAPI(this.uid, this.token);
     // Cannot execute in parallel. See: https://github.com/HabitRPG/habitrpg/issues/2301
     async.eachSeries(
       items,
@@ -198,6 +201,7 @@ class HabitSync {
                     task.completed = true;
                   }
                 }
+                console.log(`updating task: ${task.text}`);
                 habit.updateTask(item.habitrpg.id, task, function(err, res) {
                   cb(err, res);
                 });
@@ -205,7 +209,7 @@ class HabitSync {
                 if (task.type == 'todo' && task.completed) {
                   task.dateCompleted = new Date();
                 }
-                console.log('creating task:', task);
+                console.log(`creating task: ${task.text}`);
                 habit.createTask(task, function(err, res) {
                   cb(err, res);
                 });
@@ -214,7 +218,7 @@ class HabitSync {
             (res, cb) => {
               history.tasks[item.todoist.id] = {
                 todoist: item.todoist,
-                habitrpg: res.body,
+                habitrpg: res.body.data,
               };
               // Adds date to habitrpg record if type is daily
               if (res.body && res.body.type == 'daily') {
@@ -299,8 +303,8 @@ class HabitSync {
 
   parseTodoistRepeatingDate(todoist) {
     var type = 'todo';
-    var repeat = todoist.due.recurring;
-    if (!todoist.due || !todoist.due.recurring) return { type, repeat };
+    var repeat = todoist.due && todoist.due.recurring;
+    if (!repeat) return { type, repeat };
 
     var dateString = todoist.due.string;
     var noStartDate = !dateString.match(
