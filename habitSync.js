@@ -160,6 +160,7 @@ class HabitSync {
                 type: taskType.type,
                 repeat: taskType.repeat,
                 completed: item.todoist.checked == true,
+                priority: [0, 0.1, 1, 1.5, 2][item.todoist.priority],
               };
               if (item.todoist.labels.length > 0) {
                 attribute = this.checkForAttributes(item.todoist.labels);
@@ -176,10 +177,8 @@ class HabitSync {
                     (task.completed === true && item.habitrpg.completed === undefined)
                   ) {
                     var direction = task.completed === true;
-                    habit.updateTaskScore(item.habitrpg.id, direction, function(
-                      response,
-                      error,
-                    ) {});
+                    console.log(`updating completion (${direction}): ${task.text}`);
+                    habit.updateTaskScore(item.habitrpg.id, direction, _.noop);
                     // Need to set dateCompleted on todo's that are checked
                     if (direction) {
                       task.dateCompleted = new Date();
