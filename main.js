@@ -11,9 +11,7 @@ program
   .option('-f, --file <s>', 'Location of your sync history')
   .parse(process.argv);
 
-main();
-
-function main() {
+const main = async () => {
   // todo: think about removing these checks
   if (!program.uid) {
     console.error('No HabitRPG User Id found');
@@ -43,10 +41,12 @@ function main() {
     todoist: program.todoist,
     historyPath: program.file,
   });
-  sync.run(err => {
-    if (err) {
-      return console.log('Sync failed with error: ' + err);
-    }
+  try {
+    await sync.run();
     console.log('Sync completed successfully.');
-  });
-}
+  } catch (err) {
+    console.error('Sync failed with error: ' + err, err.stack);
+  }
+};
+
+main();
